@@ -61,11 +61,32 @@ const getData = (req, res) => {
       //   "default filters"
       // );
 
+      const startYear = defaultStartDate.split("-")[0];
+      const startMonth = defaultStartDate.split("-")[1];
+      const endYear = defaultEndDate.split("-")[0];
+      const endMonth = defaultEndDate.split("-")[1];
+
+      // console.log(startYear, endYear, startMonth, endMonth)
+
+      const filteredAccToYearMonth = results.filter((item) => {
+        const timestamp = new Date(item.Timestamp);
+        const itemYear = timestamp.getFullYear();
+        const itemMonth = (timestamp.getMonth() + 1).toString().padStart(2, '0');
+
+        return (
+          itemYear >= startYear &&
+          itemYear <= endYear &&
+          itemMonth >= startMonth &&
+          itemMonth <= endMonth
+        );
+      });
+      // console.log(filteredAccToYearMonth.length)
+
       const startDateTime = `${defaultStartDate}T${defaultStartTime}.000Z`;
       const endDateTime = `${defaultEndDate}T${defaultEndTime}.000Z`;
       // console.log(startDateTime, endDateTime);
 
-      const filteredData = results.filter((item) => {
+      const filteredData = filteredAccToYearMonth.filter((item) => {
         const timestamp = item.Timestamp
         return timestamp >= startDateTime && timestamp <= endDateTime;
       });
