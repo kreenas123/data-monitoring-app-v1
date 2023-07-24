@@ -1,0 +1,24 @@
+{
+  "name": "criton",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start":"electron ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KreenaShah/criton.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/KreenaShah/criton/issues"
+  },
+  "homepage": "https://github.com/KreenaShah/criton#readme",
+  "devDependencies": {
+    "electron": "^25.3.0"
+  }
+}

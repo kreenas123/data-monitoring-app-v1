@@ -1,50 +1,59 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from "react";
 
-import Dialog from '@mui/material/Dialog';
-import DialogActions from '@mui/material/DialogActions';
-import DialogContent from '@mui/material/DialogContent';
-import Tooltip from '@mui/material/Tooltip';
-import Box from '@mui/material/Box';
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import Tooltip from "@mui/material/Tooltip";
+import Box from "@mui/material/Box";
 import { Button, TextField, Typography } from "@mui/material";
+import Checkbox from "@mui/material/Checkbox";
+import FormControlLabel from "@mui/material/FormControlLabel";
 
-import RotateLeftIcon from '@mui/icons-material/RotateLeft';
-import ZoomInIcon from '@mui/icons-material/ZoomIn';
-import ZoomOutIcon from '@mui/icons-material/ZoomOut';
-import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import RotateLeftIcon from "@mui/icons-material/RotateLeft";
+import ZoomInIcon from "@mui/icons-material/ZoomIn";
+import ZoomOutIcon from "@mui/icons-material/ZoomOut";
+import FileDownloadIcon from "@mui/icons-material/FileDownload";
 
-import Table from '../Table/Table';
-import LineChart from '../Chart/LineChart';
+import Table from "../Table/Table";
+import LineChart from "../Chart/LineChart";
 import criton from "../../images/criton.png";
 
 import jsPDF from "jspdf";
 import * as XLSX from "xlsx";
 import autoTable from "jspdf-autotable";
-import axios from 'axios'
+import axios from "axios";
+import html2canvas from "html2canvas";
+import { saveAs } from "file-saver";
+import ExcelJS from "exceljs";
 
 const Columns = (props) => {
   const propKeys = Object.keys(props);
 
   useEffect(() => {
-    propKeys.forEach(prop => {
+    propKeys.forEach((prop) => {
       console.log(`${prop}: ${props[prop]}`);
     });
   }, [propKeys, props]);
 
-  const {columnName} = props;
+  const { columnName } = props;
 
+  const [imageDataURL, setImageDataURL] = useState("");
+  const [checked, setChecked] = React.useState(true);
   const [open, setOpen] = React.useState(false);
-  // const [startDate, setStartDate] = useState("");
-  // const [endDate, setEndDate] = useState("");
-  // const [startTime, setStartTime] = useState("");
-  // const [endTime, setEndTime] = useState("");
-  const [startDate, setStartDate] = useState(
-    new Date().toISOString().slice(0, 10)
-  );
+  const [apiData, setApiData] = useState([]);
+  
+  const currentDate = new Date();
+  const defaultStartDate = currentDate.toISOString().split("T")[0];
+  const defaultStartTime = "00:00:00";
+  const defaultEndDate = currentDate.toISOString().split("T")[0];
+  const defaultEndTime = "23:00:00";
+
+  const [startDateTime, setStartDateTime] = useState(`${defaultStartDate}T${defaultStartTime}`);
+  const [endDateTime, setEndDateTime] = useState(`${defaultEndDate}T${defaultEndTime}`);
+  const [startDate, setStartDate] = useState(new Date().toISOString().slice(0, 10));
   const [endDate, setEndDate] = useState(new Date().toISOString().slice(0, 10));
   const [startTime, setStartTime] = useState("00:00:00");
   const [endTime, setEndTime] = useState("23:00:00");
-
-  const [apiData, setApiData] = useState([]);
 
   // Convert string to ArrayBuffer
   const s2ab = (s) => {
@@ -56,7 +65,38 @@ const Columns = (props) => {
     return buf;
   };
 
-  const downloadTable = (format) => {
+  const convertBlobToBase64 = (blob) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        resolve(reader.result);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  };
+
+  useEffect(() => {
+    // Fetch the image and convert it to base64
+    const fetchImageAsBase64 = async () => {
+      try {
+        const response = await fetch(criton);
+        const imageBlob = await response.blob();
+        const imageBase64 = await convertBlobToBase64(imageBlob);
+        setImageDataURL(imageBase64);
+      } catch (error) {
+        console.error("Error fetching image:", error);
+      }
+    };
+
+    fetchImageAsBase64();
+  }, []);
+
+  useEffect(() => {
+    console.log(imageDataURL);
+  }, [imageDataURL]);
+
+  const downloadTable = async (format) => {
     const table = document.getElementById("table_with_data");
     const tableData = Array.from(table.querySelectorAll("tr")).map((row) =>
       Array.from(row.querySelectorAll("th, td")).map((cell) => cell.textContent)
@@ -72,47 +112,133 @@ const Columns = (props) => {
       downloadLink.download = "table.csv";
       downloadLink.click();
     } else if (format === "excel") {
-      // Export to Excel
-      const workbook = XLSX.utils.book_new();
-      const worksheet = XLSX.utils.aoa_to_sheet(tableData);
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet 1");
-      const excelData = XLSX.write(workbook, {
-        type: "binary",
-        bookType: "xlsx",
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet("Sheet 1");
+
+      const logo = workbook.addImage({
+        base64: imageDataURL, // Assuming criton.png is available in your project folder
+        extension: "png",
       });
-      const excelBlob = new Blob([s2ab(excelData)], {
-        type: "application/octet-stream",
+
+      // Define the position and dimensions of the logo
+      const logoStartCol = 0;
+      const logoStartRow = 0;
+      const logoEndCol = 180;
+      const logoEndRow = 60;
+
+      worksheet.addImage(logo, {
+        tl: { col: logoStartCol, row: logoStartRow }, // Top-left cell position
+        ext: { width: logoEndCol, height: logoEndRow }, // Image width and height (adjust as needed)
       });
-      const excelUrl = URL.createObjectURL(excelBlob);
-      const downloadLink = document.createElement("a");
-      downloadLink.href = excelUrl;
-      downloadLink.download = "table.xlsx";
-      downloadLink.click();
+
+      // Add some space between the image and table data
+      const spaceRows = 3; // Adjust the number of rows as needed
+      for (let i = 0; i < spaceRows; i++) {
+        worksheet.addRow([]);
+      }
+
+      // After adding the space, rowsMerge the cells
+      const mergeStartRow = 1; // Start row index for merging (1-based index)
+      const mergeEndRow = spaceRows; // End row index for merging (1-based index)
+      const mergeStartCol = 1; // Start column index for merging (1-based index)
+      const mergeEndCol = 3; // End column index for merging (1-based index)
+
+      worksheet.mergeCells(
+        mergeStartRow,
+        mergeStartCol,
+        mergeEndRow,
+        mergeEndCol
+      );
+
+      if (checked) {
+        const chartWrapper = document.querySelector(".chart-wrapper");
+        const canvas = await html2canvas(chartWrapper, {
+          scale: 2, // Adjust scale as needed for image quality
+        });
+        const chartImage = canvas.toDataURL("image/png");
+
+        // Add the chart to the worksheet
+        const chartImg = workbook.addImage({
+          base64: chartImage, // Chart which is being displayed
+          extension: "png",
+        });
+
+        // Define the position and dimensions of the logo
+        const chartImgStartCol = 0;
+        const chartImgStartRow = 4;
+        const chartImgEndCol = 800;
+        const chartImgEndRow = 400;
+
+        worksheet.addImage(chartImg, {
+          tl: { col: chartImgStartCol, row: chartImgStartRow }, // Top-left cell position
+          ext: { width: chartImgEndCol, height: chartImgEndRow }, // Image width and height (adjust as needed)
+        });
+
+        // Add some space between the image and table data
+        const chartSpaceRows = 25; // Adjust the number of rows as needed
+        for (let i = 4; i < chartSpaceRows; i++) {
+          worksheet.addRow([]);
+        }
+
+        // After adding the space, rowsMerge the cells
+        const mergeChartStartRow = 4; // Start row index for merging (1-based index)
+        const mergeChartEndRow = chartSpaceRows; // End row index for merging (1-based index)
+        const mergeChartStartCol = 1; // Start column index for merging (1-based index)
+        const mergeChartEndCol = 13; // End column index for merging (1-based index)
+
+        worksheet.mergeCells(
+          mergeChartStartRow,
+          mergeChartStartCol,
+          mergeChartEndRow,
+          mergeChartEndCol
+        );
+      }
+
+      // Add the table data to the worksheet
+      const tableHeaders = table.querySelectorAll("th");
+      const tableRows = table.querySelectorAll("tbody tr");
+
+      const headers = Array.from(tableHeaders).map(
+        (header) => header.textContent
+      );
+      const data = Array.from(tableRows).map((row) =>
+        Array.from(row.querySelectorAll("td")).map((cell) => cell.textContent)
+      );
+
+      worksheet.addRow(headers);
+      data.forEach((row) => worksheet.addRow(row));
+
+      // Save the Excel file and trigger the download
+      const excelBlob = await workbook.xlsx.writeBuffer();
+      saveAs(
+        new Blob([excelBlob], { type: "application/octet-stream" }),
+        "table.xlsx"
+      );
     } else if (format === "pdf") {
-      const doc = new jsPDF();
+      let chartImage = "";
+      if (chartRef.current) {
+        const chartCanvas = chartRef.current.getChartCanvas();
+        if (chartCanvas) {
+          chartImage = chartCanvas.toDataURL("image/jpeg", 1.0);
+          console.log(chartImage);
+        }
+      }
+
+      const doc = new jsPDF("landscape");
 
       const header = function (data) {
         doc.setFontSize(10);
         doc.setTextColor(40);
         // doc.text("Content", data.settings.margin.left, 35);
         doc.text(
-          `Start DateTime: ${startDate} - ${startTime}`,
+          `Start DateTime: ${startDate} - ${startTime} && End DateTime: ${endDate} - ${endTime}`,
           data.settings.margin.left,
           35
         );
-        doc.text(
-          `End DateTime: ${endDate} - ${endTime}`,
-          data.settings.margin.left,
-          45
-        );
-        doc.addImage(
-          criton,
-          "PNG",
-          data.settings.margin.left,
-          5,
-          60,
-          20
-        );
+        doc.addImage(criton, "PNG", data.settings.margin.left, 5, 60, 20);
+        if (checked) {
+          doc.addImage(chartImage, "JPEG", 14, 40, 270, 120);
+        }
         // doc.text(
         //   "Header bottom margin",
         //   data.settings.margin.left,
@@ -143,15 +269,19 @@ const Columns = (props) => {
       const tableHeaders = table.querySelectorAll("th");
       const tableRows = table.querySelectorAll("tbody tr");
 
-      const headers = Array.from(tableHeaders).map((header) => header.textContent);
+      const headers = Array.from(tableHeaders).map(
+        (header) => header.textContent
+      );
       const data = Array.from(tableRows).map((row) =>
         Array.from(row.querySelectorAll("td")).map((cell) => cell.textContent)
       );
 
+      const startY = checked ? 170 : 40;
+
       doc.autoTable({
         head: [headers],
         body: data,
-        startY: 50,
+        startY: startY,
         didDrawPage: function (data) {
           if (data.pageNumber === 1) {
             header(data);
@@ -168,57 +298,58 @@ const Columns = (props) => {
     setOpen(true);
   };
   const handleClose = (event, reason) => {
-    if (reason !== 'backdropClick') {
+    if (reason !== "backdropClick") {
       setOpen(false);
     }
   };
 
   const chartRef = useRef(null);
-
   const resetChartZoom = () => {
     chartRef.current.getChartInstance().resetZoom();
   };
-
   const zoomIn = () => {
     if (chartRef.current) {
       chartRef.current.getChartInstance().zoom(1.1);
     }
   };
-
   const zoomOut = () => {
     if (chartRef.current) {
       chartRef.current.getChartInstance().zoom(0.9);
     }
   };
-  
+
   const fetchData = async () => {
     try {
       const apiUrl = `http://localhost:8080/api/data?startDate=${startDate}&endDate=${endDate}&startTime=${startTime}&endTime=${endTime}`;
       // const apiUrl = `https://weary-jay-ring.cyclic.app/api/data?startDate=${startDate}&endDate=${endDate}&startTime=${startTime}&endTime=${endTime}`;
       const response = await axios.get(apiUrl);
       setApiData(response.data);
-      console.log(response.data, "response.data 1st time valaaaaa from columns component");
-    }
-    catch (error) {
+      console.log(
+        response.data,
+        "response.data 1st time valaaaaa from columns component"
+      );
+    } catch (error) {
       console.error(error);
     }
-  }
-  
+  };
+
   useEffect(() => {
-    fetchData()
-  },[])
+    fetchData();
+  }, []);
 
   const handleInputChange = (event) => {
     const { name, value } = event.target;
 
-    if (name === "startDate") {
-      setStartDate(value);
-    } else if (name === "endDate") {
-      setEndDate(value);
-    } else if (name === "startTime") {
-      setStartTime(value);
-    } else if (name === "endTime") {
-      setEndTime(value);
+    if (name === "startDateTime") {
+      setStartDateTime(value);
+      const [date, time] = value.split("T");
+      setStartDate(date);
+      setStartTime(time);
+    } else if (name === "endDateTime") {
+      const [date, time] = value.split("T");
+      setEndDateTime(value);
+      setEndDate(date);
+      setEndTime(time);
     }
   };
 
@@ -237,129 +368,142 @@ const Columns = (props) => {
 
   const colData = columnName ? extractDataByColumn(apiData, columnName) : apiData;
 
+  const handleIncludeChart = (event) => {
+    setChecked(event.target.checked);
+  };
 
   return (
     <>
-      <div className='graph-header flex'>
-        <div>
+      <div className="graph-header flex">
+        <div className="date_container">
           <form onSubmit={handleSubmit}>
-            <div className="date_container flex">
-              <div className='start flex'>
-              <Typography>Start Date</Typography>
-              <TextField
-                size="small"
-                type="date"
-                name="startDate"
-                variant="outlined"
-                value={startDate}
-                onChange={handleInputChange}
-              />
-              </div>
-              <div className='end flex'>
-              <Typography>End Date</Typography>
-              <TextField
-                size="small"
-                type="date"
-                name="endDate"
-                variant="outlined"
-                value={endDate}
-                onChange={handleInputChange}
-              />
-              </div>
-            </div>
-            <br />
-            <div className="time_container flex">
-            <div className='start flex'>
-              <Typography>Start Time</Typography>
-              <TextField
-                className='filter-input'
-                size="small"
-                type="time"
-                name="startTime"
-                variant="outlined"
-                inputProps={{
-                  step: 1, // Allows seconds input
-                }}
-                value={startTime}
-                onChange={handleInputChange}
-              />
-              </div>
-              <div className='end flex'>
-              <Typography>End Time</Typography>
-              <TextField
-                className='filter-input'
-                size="small"
-                type="time"
-                name="endTime"
-                variant="outlined"
-                inputProps={{
-                  step: 1, // Allows seconds input
-                }}
-                value={endTime}
-                onChange={handleInputChange}
-              />
-              </div>
-            </div>
-            <br />
-            <Button type="submit" variant="contained">
+            {/* <Typography>Start Date</Typography> */}
+            <TextField
+              size="small"
+              type="datetime-local"
+              InputProps={{
+                step: 1, // Specify the time step in seconds
+                inputProps: {
+                  step: 1, // Specify the step attribute for seconds
+                },
+              }}
+              name="startDateTime"
+              variant="outlined"
+              value={startDateTime}
+              onChange={handleInputChange}
+            />
+            {/* <Typography>End Date</Typography> */}
+            <TextField
+              size="small"
+              type="datetime-local"
+              InputProps={{
+                step: 1, // Specify the time step in seconds
+                inputProps: {
+                  step: 1, // Specify the step attribute for seconds
+                },
+              }}
+              name="endDateTime"
+              variant="outlined"
+              value={endDateTime}
+              onChange={handleInputChange}
+            />
+            <Button size="small" type="submit" variant="contained">
               Apply Filter
             </Button>
           </form>
         </div>
         <div>
           <Tooltip title="Reset" arrow>
-            <Button variant="contained" className='graph-btns' onClick={resetChartZoom}>
-              <RotateLeftIcon></RotateLeftIcon>
-            </Button>
+            <RotateLeftIcon
+              className="graph-header-icons"
+              onClick={resetChartZoom}
+            ></RotateLeftIcon>
           </Tooltip>
           <Tooltip title="Zoom In" arrow>
-            <Button variant="contained" className='graph-btns' onClick={zoomIn}>
-              <ZoomInIcon></ZoomInIcon>
-            </Button>
+            <ZoomInIcon
+              className="graph-header-icons"
+              onClick={zoomIn}
+            ></ZoomInIcon>
           </Tooltip>
           <Tooltip title="Zoom Out" arrow>
-            <Button variant="contained" className='graph-btns' onClick={zoomOut}>
-              <ZoomOutIcon></ZoomOutIcon>
-            </Button>
+            <ZoomOutIcon
+              className="graph-header-icons"
+              onClick={zoomOut}
+            ></ZoomOutIcon>
+          </Tooltip>
+          <Tooltip title="Download Report" arrow>
+              <FileDownloadIcon
+                className="graph-header-icons"
+                onClick={handleClickOpen}
+              ></FileDownloadIcon>
+            <Dialog disableEscapeKeyDown open={open} onClose={handleClose}>
+              <DialogContent sx={{ padding: 1, paddingBottom: 0 }}>
+                <Box sx={{ display: "flex" }}>
+                  <Button
+                    variant="contained"
+                    onClick={() => downloadTable("pdf")}
+                    className="export-options"
+                  >
+                    PDF
+                  </Button>
+                  <Button
+                    variant="contained"
+                    onClick={() => downloadTable("csv")}
+                    className="export-options"
+                  >
+                    CSV
+                  </Button>
+                  <Button
+                    variant="contained"
+                    onClick={() => downloadTable("excel")}
+                    className="export-options"
+                  >
+                    Excel
+                  </Button>
+                </Box>
+                <FormControlLabel
+                  sx={{ mt: 0.8, ml: 0.2 }}
+                  control={
+                    <Checkbox
+                      checked={checked}
+                      onChange={handleIncludeChart}
+                      sx={{
+                        color: "#034694",
+                        "&.Mui-checked": {
+                          color: "#034694",
+                        },
+                      }}
+                      inputProps={{ "aria-label": "controlled" }}
+                    />
+                  }
+                  label={
+                    <Typography variant="body1" component="span">
+                      Include Chart
+                    </Typography>
+                  }
+                />
+              </DialogContent>
+              <DialogActions>
+                <Button onClick={handleClose} sx={{ color: "#034694" }}>
+                  Ok
+                </Button>
+              </DialogActions>
+            </Dialog>
           </Tooltip>
         </div>
       </div>
-      <div >
-      {columnName ? (
-          <LineChart apidata={colData}  ref={chartRef} />
+      <div className="chart-wrapper">
+        {columnName ? (
+          <LineChart apidata={colData} ref={chartRef} />
         ) : (
-          <LineChart apidata={apiData}  ref={chartRef}/>
+          <LineChart apidata={apiData} ref={chartRef} />
         )}
       </div>
-      <div className='table-header flex'>
+      <div className="table-header">
         <h1>Tabular Data</h1>
-        <Tooltip title="Download Report" arrow>
-          <div>
-            <Button variant="contained" className='graph-btns' onClick={handleClickOpen}>
-              <FileDownloadIcon></FileDownloadIcon>
-            </Button>
-            <Dialog disableEscapeKeyDown open={open} onClose={handleClose}>
-              {/* <DialogTitle>Export As</DialogTitle> */}
-              <DialogContent>
-                <Box sx={{ display: 'flex' }}>
-                  <Button variant="contained" onClick={() => downloadTable("pdf")} className='export-options'>PDF</Button>
-                  <Button variant="contained" onClick={() => downloadTable("csv")} className='export-options'>CSV</Button>
-                  <Button variant="contained" onClick={() => downloadTable("excel")} className='export-options'>Excel</Button>
-                </Box>
-              </DialogContent>
-              <DialogActions>
-                <Button onClick={handleClose}>Ok</Button>
-              </DialogActions>
-            </Dialog>
-          </div>
-        </Tooltip>
       </div>
       <div id="table_with_data">
-      {columnName ? (
-          <Table apidata={colData} />
-        ) : (
-          <Table apidata={apiData} />
-        )}
+        {columnName ? <Table apidata={colData} /> : <Table apidata={apiData} />}
       </div>
     </>
   );

@@ -23,6 +23,8 @@
     "chartjs-plugin-zoom": "^2.0.1",
     "csv-parser": "^3.0.0",
     "date-fns": "^2.30.0",
+    "exceljs": "^4.3.0",
+    "file-saver": "^2.0.5",
     "hammerjs": "^2.0.8",
     "html2pdf.js": "^0.10.1",
     "jspdf": "^2.5.1",
@@ -37,6 +39,8 @@
     "react-router-dom": "^6.13.0",
     "react-scripts": "5.0.1",
     "react-time-picker": "^6.2.0",
+    "styled-component": "^2.8.0",
+    "styled-components": "^6.0.4",
     "styled-components-mui": "^0.3.2",
     "web-vitals": "^2.1.4",
     "xlsx": "^0.18.5"
