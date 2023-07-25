@@ -12,7 +12,7 @@ import zoomPlugin from "chartjs-plugin-zoom";
 const LineChart = forwardRef((props, ref) => {
   Chart.register(zoomPlugin);
   const { apidata } = props;
-  console.log(apidata, "response.data 1st time valaaaaa from chart");
+  // console.log(apidata, "response.data 1st time valaaaaa from chart");
 
   const chartRef = useRef(null);
   const [chartInstance, setChartInstance] = useState(null);
@@ -29,14 +29,12 @@ const LineChart = forwardRef((props, ref) => {
         const timestamp = row.Timestamp;
         const time = timestamp.substring(11, 19);
         const date = timestamp.substring(0, 10);
-        console.log(date, time, "akshat");
 
         const parts = date.split("-");
         const year = parts[0].substring(2); // Extract the last two digits of the year
         const month = parseInt(parts[1], 10); // Parse the month as an integer
         const day = parseInt(parts[2], 10); // Parse the day as an integer
         const formattedDate = `${day}/${month}/${year}`;
-        console.log(formattedDate);
 
         const data = {};
 

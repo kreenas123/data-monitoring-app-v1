@@ -8,6 +8,15 @@ import Box from "@mui/material/Box";
 import { Button, TextField, Typography } from "@mui/material";
 import Checkbox from "@mui/material/Checkbox";
 import FormControlLabel from "@mui/material/FormControlLabel";
+import OutlinedInput from "@mui/material/OutlinedInput";
+import InputLabel from "@mui/material/InputLabel";
+import MenuItem from "@mui/material/MenuItem";
+import FormControl from "@mui/material/FormControl";
+import ListItemText from "@mui/material/ListItemText";
+import Select from "@mui/material/Select";
+import { Check } from "@mui/icons-material";
+
+import { styled } from "@mui/material/styles";
 
 import RotateLeftIcon from "@mui/icons-material/RotateLeft";
 import ZoomInIcon from "@mui/icons-material/ZoomIn";
@@ -17,6 +26,7 @@ import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import Table from "../Table/Table";
 import LineChart from "../Chart/LineChart";
 import criton from "../../images/criton.png";
+import config from '../../config.json'
 
 import jsPDF from "jspdf";
 import * as XLSX from "xlsx";
@@ -25,16 +35,6 @@ import axios from "axios";
 import html2canvas from "html2canvas";
 import { saveAs } from "file-saver";
 import ExcelJS from "exceljs";
-import { useDispatch, useSelector } from 'react-redux';
-
-let ipcRenderer;
-if (window && window.require) {
-  ipcRenderer = window.require('electron').ipcRenderer;
-} else {
-  // Handle the case when running in a regular web browser environment
-  // (e.g., show an error message or use a fallback)
-  ipcRenderer = null;
-}
 
 const Columns = (props) => {
   const propKeys = Object.keys(props);
@@ -45,13 +45,22 @@ const Columns = (props) => {
     });
   }, [propKeys, props]);
 
-  const { columnName } = props;
+  const { columnName, databaseName } = props;
+  // console.log(databaseName,"databaseName",typeof(databaseName))
 
-  const [imageDataURL, setImageDataURL] = useState("");
-  const [checked, setChecked] = React.useState(true);
-  const [open, setOpen] = React.useState(false);
-  const [apiData, setApiData] = useState([]);
-  const [testData, setTestData] = useState(null);
+  let AllColumns = []
+  const entries = Object.entries(config.databases);
+
+  for (const [index, [key, value]] of entries.entries()) {
+    // console.log(`Entry ${index}: Key = ${key}, Value =`, value);
+    // console.log(value.db_name)
+    if(value.db_name == databaseName){
+      // console.log(value.db_name,key,"oh please")
+      AllColumns = Object.values(value.db_columns)
+    }
+  }
+
+  // console.log(AllColumns,"yess finally I got all columns")
 
   const currentDate = new Date();
   const defaultStartDate = currentDate.toISOString().split("T")[0];
@@ -65,21 +74,24 @@ const Columns = (props) => {
   const [endDate, setEndDate] = useState(new Date().toISOString().slice(0, 10));
   const [startTime, setStartTime] = useState("00:00:00");
   const [endTime, setEndTime] = useState("23:00:00");
+  const [columnNameList, setColumnNameList] = React.useState([]);
+  const [colData, setcolData] = React.useState([]);
+  const [imageDataURL, setImageDataURL] = useState("");
+  const [checked, setChecked] = React.useState(true);
+  const [open, setOpen] = React.useState(false);
+  const [apiData, setApiData] = useState([]);
+  const [customizeY,setCustomizeY] = useState(false);
 
-  const isElectron = useSelector(state => state.isElectron);
-  const dispatch = useDispatch();
-
-  useEffect(() => {
-    // Check if we are running in an Electron environment
-    const isRunningInElectron = window && window.process && window.process.type;
-    console.log(isRunningInElectron)
-    dispatch({ type: 'SET_IS_ELECTRON', payload: isRunningInElectron });
-  }, [dispatch]);
-
-  useEffect(() => {
-    // Now the `isElectron` value is updated from the Redux store
-    console.log('isElectron:', typeof (isElectron), "plej", isElectron);
-  }, [isElectron]);
+  const ITEM_HEIGHT = 48;
+  const ITEM_PADDING_TOP = 8;
+  const MenuProps = {
+    PaperProps: {
+      style: {
+        maxHeight: ITEM_HEIGHT * 4.5 + ITEM_PADDING_TOP,
+        width: 250,
+      },
+    },
+  };
 
   // Convert string to ArrayBuffer
   const s2ab = (s) => {
@@ -117,10 +129,6 @@ const Columns = (props) => {
 
     fetchImageAsBase64();
   }, []);
-
-  // useEffect(() => {
-  //   console.log(imageDataURL);
-  // }, [imageDataURL]);
 
   const downloadTable = async (format) => {
     const table = document.getElementById("table_with_data");
@@ -237,16 +245,14 @@ const Columns = (props) => {
       // Save the Excel file and trigger the download
       const excelBlob = await workbook.xlsx.writeBuffer();
       saveAs(
-        new Blob([excelBlob], { type: "application/octet-stream" }),
-        "table.xlsx"
-      );
+        new Blob([excelBlob], { type: "application/octet-stream" }),'table.xlsx');
     } else if (format === "pdf") {
       let chartImage = "";
       if (chartRef.current) {
         const chartCanvas = chartRef.current.getChartCanvas();
         if (chartCanvas) {
           chartImage = chartCanvas.toDataURL("image/jpeg", 1.0);
-          console.log(chartImage);
+          // console.log(chartImage);
         }
       }
 
@@ -346,14 +352,14 @@ const Columns = (props) => {
 
   const fetchData = async () => {
     try {
-      if (isElectron === "renderer") {
-        ipcRenderer.send('request-data');
-      } else {
-        const apiUrl = `http://localhost:8080/api/data?startDate=${startDate}&endDate=${endDate}&startTime=${startTime}&endTime=${endTime}`;
-        const response = await axios.get(apiUrl);
-        setApiData(response.data);
-        console.log(response.data, "response.data 1st time valaaaaa from columns component");
-      }
+      const apiUrl = `http://localhost:8080/api/data?startDate=${startDate}&endDate=${endDate}&startTime=${startTime}&endTime=${endTime}`;
+      // const apiUrl = `https://weary-jay-ring.cyclic.app/api/data?startDate=${startDate}&endDate=${endDate}&startTime=${startTime}&endTime=${endTime}`;
+      const response = await axios.get(apiUrl);
+      setApiData(response.data);
+      // console.log(
+      //   response.data,
+      //   "response.data 1st time valaaaaa from columns component"
+      // );
     } catch (error) {
       console.error(error);
     }
@@ -361,17 +367,7 @@ const Columns = (props) => {
 
   useEffect(() => {
     fetchData();
-    if (isElectron === "renderer") {
-      ipcRenderer.once('response-data', handleResponseData);
-      return () => {
-        ipcRenderer.removeListener('response-data', handleResponseData);
-      };
-    }
-  }, [isElectron, startDate, endDate, startTime, endTime]);
-
-  const handleResponseData = (event, responseData) => {
-    setTestData(responseData);
-  };
+  }, []);
 
   const handleInputChange = (event) => {
     const { name, value } = event.target;
@@ -393,161 +389,207 @@ const Columns = (props) => {
     event.preventDefault();
     fetchData();
   };
-
-  const extractDataByColumn = (data, column) => {
-    const extractedData = data.map((row) => ({
-      Timestamp: row.Timestamp,
-      [column]: row[column],
-    }));
+  
+  const extractDataByColumn = (data, columns) => {
+    const columnss = columns ? columns : AllColumns
+  
+    const extractedData = data.map((row) => {
+      const rowData = { Timestamp: row.Timestamp };
+      columnss.forEach((column) => {
+        rowData[column] = row[column];
+      });
+      return rowData;
+    });
+  console.log(extractedData,"extractData")
     return extractedData;
   };
 
-  const colData = columnName ? extractDataByColumn(apiData, columnName) : apiData;
+  useEffect(() =>{
+    console.log(customizeY)
+    if(customizeY){
+      const a = extractDataByColumn(apiData, columnNameList);
+      setcolData(a)
+      console.log(a,"heyaaaaaaaaaaaaaaaaaaaaaaaaaa")
+    }
+  },[customizeY])
 
   const handleIncludeChart = (event) => {
     setChecked(event.target.checked);
   };
 
+  const handleChange = (event) => {
+    const {
+      target: { value },
+    } = event;
+    setColumnNameList(
+      // On autofill we get a stringified value.
+      typeof value === "string" ? value.split(",") : value
+    );
+  };
+
+  const customizeYaxis = () =>{
+      console.log("yeahhhhhhhhhhhhhhhh",columnNameList)
+    setCustomizeY(true)
+  }
+
   return (
     <>
-      {isElectron === "renderer" ? (
-        <p>Dataaaaaaaaaaaaaaaa received from main process: {testData}</p>
-      ) : (
-        <div>
-          <div className="graph-header flex">
-            <div className="date_container">
-              <form onSubmit={handleSubmit}>
-                {/* <Typography>Start Date</Typography> */}
-                <TextField
-                  size="small"
-                  type="datetime-local"
-                  InputProps={{
-                    step: 1, // Specify the time step in seconds
-                    inputProps: {
-                      step: 1, // Specify the step attribute for seconds
-                    },
-                  }}
-                  name="startDateTime"
-                  variant="outlined"
-                  value={startDateTime}
-                  onChange={handleInputChange}
-                />
-                {/* <Typography>End Date</Typography> */}
-                <TextField
-                  size="small"
-                  type="datetime-local"
-                  InputProps={{
-                    step: 1, // Specify the time step in seconds
-                    inputProps: {
-                      step: 1, // Specify the step attribute for seconds
-                    },
-                  }}
-                  name="endDateTime"
-                  variant="outlined"
-                  value={endDateTime}
-                  onChange={handleInputChange}
-                />
-                <Button size="small" type="submit" variant="contained">
-                  Apply Filter
-                </Button>
-              </form>
-            </div>
-            <div>
-              <Tooltip title="Reset" arrow>
-                <RotateLeftIcon
-                  className="graph-header-icons"
-                  onClick={resetChartZoom}
-                ></RotateLeftIcon>
-              </Tooltip>
-              <Tooltip title="Zoom In" arrow>
-                <ZoomInIcon
-                  className="graph-header-icons"
-                  onClick={zoomIn}
-                ></ZoomInIcon>
-              </Tooltip>
-              <Tooltip title="Zoom Out" arrow>
-                <ZoomOutIcon
-                  className="graph-header-icons"
-                  onClick={zoomOut}
-                ></ZoomOutIcon>
-              </Tooltip>
-              <Tooltip title="Download Report" arrow>
-                <FileDownloadIcon
-                  className="graph-header-icons"
-                  onClick={handleClickOpen}
-                ></FileDownloadIcon>
-                <Dialog disableEscapeKeyDown open={open} onClose={handleClose}>
-                  <DialogContent sx={{ padding: 1, paddingBottom: 0 }}>
-                    <Box sx={{ display: "flex" }}>
-                      <Button
-                        variant="contained"
-                        onClick={() => downloadTable("pdf")}
-                        className="export-options"
-                      >
-                        PDF
-                      </Button>
-                      <Button
-                        variant="contained"
-                        onClick={() => downloadTable("csv")}
-                        className="export-options"
-                      >
-                        CSV
-                      </Button>
-                      <Button
-                        variant="contained"
-                        onClick={() => downloadTable("excel")}
-                        className="export-options"
-                      >
-                        Excel
-                      </Button>
-                    </Box>
-                    <FormControlLabel
-                      sx={{ mt: 0.8, ml: 0.2 }}
-                      control={
-                        <Checkbox
-                          checked={checked}
-                          onChange={handleIncludeChart}
-                          sx={{
-                            color: "#034694",
-                            "&.Mui-checked": {
-                              color: "#034694",
-                            },
-                          }}
-                          inputProps={{ "aria-label": "controlled" }}
-                        />
-                      }
-                      label={
-                        <Typography variant="body1" component="span">
-                          Include Chart
-                        </Typography>
-                      }
-                    />
-                  </DialogContent>
-                  <DialogActions>
-                    <Button onClick={handleClose} sx={{ color: "#034694" }}>
-                      Ok
-                    </Button>
-                  </DialogActions>
-                </Dialog>
-              </Tooltip>
-            </div>
-          </div>
-          <div className="chart-wrapper">
-            {columnName ? (
-              <LineChart apidata={colData} ref={chartRef} />
-            ) : (
-              <LineChart apidata={apiData} ref={chartRef} />
-            )}
-          </div>
-          <div className="table-header">
-            <h1>Tabular Data</h1>
-          </div>
-          <div id="table_with_data">
-            {columnName ? <Table apidata={colData} /> : <Table apidata={apiData} />}
-          </div>
+      <div className="graph-header flex">
+        <div className="date_container">
+          <form onSubmit={handleSubmit}>
+            {/* <Typography>Start Date</Typography> */}
+            <TextField
+              size="small"
+              type="datetime-local"
+              InputProps={{
+                step: 1, // Specify the time step in seconds
+                inputProps: {
+                  step: 1, // Specify the step attribute for seconds
+                },
+              }}
+              name="startDateTime"
+              variant="outlined"
+              value={startDateTime}
+              onChange={handleInputChange}
+            />
+            {/* <Typography>End Date</Typography> */}
+            <TextField
+              size="small"
+              type="datetime-local"
+              InputProps={{
+                step: 1, // Specify the time step in seconds
+                inputProps: {
+                  step: 1, // Specify the step attribute for seconds
+                },
+              }}
+              name="endDateTime"
+              variant="outlined"
+              value={endDateTime}
+              onChange={handleInputChange}
+            />
+            <Button size="small" type="submit" variant="contained">
+              Apply Filter
+            </Button>
+          </form>
         </div>
-      )}
-
+        <div>
+          <FormControl sx={{ m: 0.7, width: 160 }}>
+            <InputLabel
+              id="multiple-checkbox-label"
+              sx={{fontSize:!5,marginTop:-1.5}}
+            >
+              Select Columns
+            </InputLabel>
+            <Select
+              labelId="multiple-checkbox-label"
+              id="multiple-checkbox"
+              multiple
+              size="small"
+              value={columnNameList}
+              onChange={handleChange}
+              input={<OutlinedInput label="Select Columns" />}
+              renderValue={(selected) => selected.join(", ")}
+              sx={{ height: 30 }}
+              MenuProps={MenuProps}
+            >
+              {AllColumns.map((name) => (
+                <MenuItem key={name} value={name}>
+                  <Checkbox checked={columnNameList.indexOf(name) > -1} />
+                  <ListItemText primary={name} />
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <Check onClick={customizeYaxis}/>
+          <Tooltip title="Reset" arrow>
+            <RotateLeftIcon
+              className="graph-header-icons"
+              onClick={resetChartZoom}
+            ></RotateLeftIcon>
+          </Tooltip>
+          <Tooltip title="Zoom In" arrow>
+            <ZoomInIcon
+              className="graph-header-icons"
+              onClick={zoomIn}
+            ></ZoomInIcon>
+          </Tooltip>
+          <Tooltip title="Zoom Out" arrow>
+            <ZoomOutIcon
+              className="graph-header-icons"
+              onClick={zoomOut}
+            ></ZoomOutIcon>
+          </Tooltip>
+          <Tooltip title="Download Report" arrow>
+            <FileDownloadIcon
+              className="graph-header-icons"
+              onClick={handleClickOpen}
+            ></FileDownloadIcon>
+            <Dialog disableEscapeKeyDown open={open} onClose={handleClose}>
+              <DialogContent sx={{ padding: 1, paddingBottom: 0 }}>
+                <Box sx={{ display: "flex" }}>
+                  <Button
+                    variant="contained"
+                    onClick={() => downloadTable("pdf")}
+                    className="export-options"
+                  >
+                    PDF
+                  </Button>
+                  <Button
+                    variant="contained"
+                    onClick={() => downloadTable("csv")}
+                    className="export-options"
+                  >
+                    CSV
+                  </Button>
+                  <Button
+                    variant="contained"
+                    onClick={() => downloadTable("excel")}
+                    className="export-options"
+                  >
+                    Excel
+                  </Button>
+                </Box>
+                <FormControlLabel
+                  sx={{ mt: 0.8, ml: 0.2 }}
+                  control={
+                    <Checkbox
+                      checked={checked}
+                      onChange={handleIncludeChart}
+                      sx={{
+                        color: "#034694",
+                        "&.Mui-checked": {
+                          color: "#034694",
+                        },
+                      }}
+                      inputProps={{ "aria-label": "controlled" }}
+                    />
+                  }
+                  label={
+                    <Typography variant="body1" component="span">
+                      Include Chart
+                    </Typography>
+                  }
+                />
+              </DialogContent>
+              <DialogActions>
+                <Button onClick={handleClose} sx={{ color: "#034694" }}>
+                  Ok
+                </Button>
+              </DialogActions>
+            </Dialog>
+          </Tooltip>
+        </div>
+      </div>
+      <div className="chart-wrapper">
+        {console.log(colData,"pppppppppppppppppppppp")}
+          <LineChart apidata={colData} ref={chartRef} />
+      </div>
+      <div className="table-header">
+        <h1>Tabular Data</h1>
+      </div>
+      <div id="table_with_data">
+        <Table apidata={colData} />
+      </div>
     </>
   );
 };
