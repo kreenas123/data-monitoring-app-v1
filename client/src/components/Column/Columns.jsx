@@ -347,7 +347,7 @@ const Columns = (props) => {
   const fetchData = async () => {
     try {
       if (isElectron === "renderer") {
-        ipcRenderer.send('request-data');
+        ipcRenderer.send('request-data', startDate, endDate, startTime, endTime);
       } else {
         const apiUrl = `http://localhost:8080/api/data?startDate=${startDate}&endDate=${endDate}&startTime=${startTime}&endTime=${endTime}`;
         const response = await axios.get(apiUrl);
@@ -367,10 +367,10 @@ const Columns = (props) => {
         ipcRenderer.removeListener('response-data', handleResponseData);
       };
     }
-  }, [isElectron, startDate, endDate, startTime, endTime]);
+  }, [isElectron]);
 
-  const handleResponseData = (event, responseData) => {
-    setTestData(responseData);
+  const handleResponseData = (event, data) => {
+    setApiData(data);
   };
 
   const handleInputChange = (event) => {
@@ -392,6 +392,12 @@ const Columns = (props) => {
   const handleSubmit = (event) => {
     event.preventDefault();
     fetchData();
+    if (isElectron === "renderer") {
+      ipcRenderer.once('response-data', handleResponseData);
+      return () => {
+        ipcRenderer.removeListener('response-data', handleResponseData);
+      };
+    }
   };
 
   const extractDataByColumn = (data, column) => {
@@ -410,143 +416,139 @@ const Columns = (props) => {
 
   return (
     <>
-      {isElectron === "renderer" ? (
-        <p>Dataaaaaaaaaaaaaaaa received from main process: {testData}</p>
-      ) : (
-        <div>
-          <div className="graph-header flex">
-            <div className="date_container">
-              <form onSubmit={handleSubmit}>
-                {/* <Typography>Start Date</Typography> */}
-                <TextField
-                  size="small"
-                  type="datetime-local"
-                  InputProps={{
-                    step: 1, // Specify the time step in seconds
-                    inputProps: {
-                      step: 1, // Specify the step attribute for seconds
-                    },
-                  }}
-                  name="startDateTime"
-                  variant="outlined"
-                  value={startDateTime}
-                  onChange={handleInputChange}
-                />
-                {/* <Typography>End Date</Typography> */}
-                <TextField
-                  size="small"
-                  type="datetime-local"
-                  InputProps={{
-                    step: 1, // Specify the time step in seconds
-                    inputProps: {
-                      step: 1, // Specify the step attribute for seconds
-                    },
-                  }}
-                  name="endDateTime"
-                  variant="outlined"
-                  value={endDateTime}
-                  onChange={handleInputChange}
-                />
-                <Button size="small" type="submit" variant="contained">
-                  Apply Filter
-                </Button>
-              </form>
-            </div>
-            <div>
-              <Tooltip title="Reset" arrow>
-                <RotateLeftIcon
-                  className="graph-header-icons"
-                  onClick={resetChartZoom}
-                ></RotateLeftIcon>
-              </Tooltip>
-              <Tooltip title="Zoom In" arrow>
-                <ZoomInIcon
-                  className="graph-header-icons"
-                  onClick={zoomIn}
-                ></ZoomInIcon>
-              </Tooltip>
-              <Tooltip title="Zoom Out" arrow>
-                <ZoomOutIcon
-                  className="graph-header-icons"
-                  onClick={zoomOut}
-                ></ZoomOutIcon>
-              </Tooltip>
-              <Tooltip title="Download Report" arrow>
-                <FileDownloadIcon
-                  className="graph-header-icons"
-                  onClick={handleClickOpen}
-                ></FileDownloadIcon>
-                <Dialog disableEscapeKeyDown open={open} onClose={handleClose}>
-                  <DialogContent sx={{ padding: 1, paddingBottom: 0 }}>
-                    <Box sx={{ display: "flex" }}>
-                      <Button
-                        variant="contained"
-                        onClick={() => downloadTable("pdf")}
-                        className="export-options"
-                      >
-                        PDF
-                      </Button>
-                      <Button
-                        variant="contained"
-                        onClick={() => downloadTable("csv")}
-                        className="export-options"
-                      >
-                        CSV
-                      </Button>
-                      <Button
-                        variant="contained"
-                        onClick={() => downloadTable("excel")}
-                        className="export-options"
-                      >
-                        Excel
-                      </Button>
-                    </Box>
-                    <FormControlLabel
-                      sx={{ mt: 0.8, ml: 0.2 }}
-                      control={
-                        <Checkbox
-                          checked={checked}
-                          onChange={handleIncludeChart}
-                          sx={{
-                            color: "#034694",
-                            "&.Mui-checked": {
-                              color: "#034694",
-                            },
-                          }}
-                          inputProps={{ "aria-label": "controlled" }}
-                        />
-                      }
-                      label={
-                        <Typography variant="body1" component="span">
-                          Include Chart
-                        </Typography>
-                      }
-                    />
-                  </DialogContent>
-                  <DialogActions>
-                    <Button onClick={handleClose} sx={{ color: "#034694" }}>
-                      Ok
+      <div>
+        <div className="graph-header flex">
+          <div className="date_container">
+            <form >
+              {/* <Typography>Start Date</Typography> */}
+              <TextField
+                size="small"
+                type="datetime-local"
+                InputProps={{
+                  step: 1, // Specify the time step in seconds
+                  inputProps: {
+                    step: 1, // Specify the step attribute for seconds
+                  },
+                }}
+                name="startDateTime"
+                variant="outlined"
+                value={startDateTime}
+                onChange={handleInputChange}
+              />
+              {/* <Typography>End Date</Typography> */}
+              <TextField
+                size="small"
+                type="datetime-local"
+                InputProps={{
+                  step: 1, // Specify the time step in seconds
+                  inputProps: {
+                    step: 1, // Specify the step attribute for seconds
+                  },
+                }}
+                name="endDateTime"
+                variant="outlined"
+                value={endDateTime}
+                onChange={handleInputChange}
+              />
+              <Button size="small" type="submit" variant="contained" onClick={handleSubmit}>
+                Apply Filter
+              </Button>
+            </form>
+          </div>
+          <div>
+            <Tooltip title="Reset" arrow>
+              <RotateLeftIcon
+                className="graph-header-icons"
+                onClick={resetChartZoom}
+              ></RotateLeftIcon>
+            </Tooltip>
+            <Tooltip title="Zoom In" arrow>
+              <ZoomInIcon
+                className="graph-header-icons"
+                onClick={zoomIn}
+              ></ZoomInIcon>
+            </Tooltip>
+            <Tooltip title="Zoom Out" arrow>
+              <ZoomOutIcon
+                className="graph-header-icons"
+                onClick={zoomOut}
+              ></ZoomOutIcon>
+            </Tooltip>
+            <Tooltip title="Download Report" arrow>
+              <FileDownloadIcon
+                className="graph-header-icons"
+                onClick={handleClickOpen}
+              ></FileDownloadIcon>
+              <Dialog disableEscapeKeyDown open={open} onClose={handleClose}>
+                <DialogContent sx={{ padding: 1, paddingBottom: 0 }}>
+                  <Box sx={{ display: "flex" }}>
+                    <Button
+                      variant="contained"
+                      onClick={() => downloadTable("pdf")}
+                      className="export-options"
+                    >
+                      PDF
                     </Button>
-                  </DialogActions>
-                </Dialog>
-              </Tooltip>
-            </div>
-          </div>
-          <div className="chart-wrapper">
-            {columnName ? (
-              <LineChart apidata={colData} ref={chartRef} />
-            ) : (
-              <LineChart apidata={apiData} ref={chartRef} />
-            )}
-          </div>
-          <div className="table-header">
-            <h1>Tabular Data</h1>
-          </div>
-          <div id="table_with_data">
-            {columnName ? <Table apidata={colData} /> : <Table apidata={apiData} />}
+                    <Button
+                      variant="contained"
+                      onClick={() => downloadTable("csv")}
+                      className="export-options"
+                    >
+                      CSV
+                    </Button>
+                    <Button
+                      variant="contained"
+                      onClick={() => downloadTable("excel")}
+                      className="export-options"
+                    >
+                      Excel
+                    </Button>
+                  </Box>
+                  <FormControlLabel
+                    sx={{ mt: 0.8, ml: 0.2 }}
+                    control={
+                      <Checkbox
+                        checked={checked}
+                        onChange={handleIncludeChart}
+                        sx={{
+                          color: "#034694",
+                          "&.Mui-checked": {
+                            color: "#034694",
+                          },
+                        }}
+                        inputProps={{ "aria-label": "controlled" }}
+                      />
+                    }
+                    label={
+                      <Typography variant="body1" component="span">
+                        Include Chart
+                      </Typography>
+                    }
+                  />
+                </DialogContent>
+                <DialogActions>
+                  <Button onClick={handleClose} sx={{ color: "#034694" }}>
+                    Ok
+                  </Button>
+                </DialogActions>
+              </Dialog>
+            </Tooltip>
           </div>
         </div>
-      )}
+        <div className="chart-wrapper">
+          {columnName ? (
+            <LineChart apidata={colData} ref={chartRef} />
+          ) : (
+            <LineChart apidata={apiData} ref={chartRef} />
+          )}
+        </div>
+        <div className="table-header">
+          <h1>Tabular Data</h1>
+        </div>
+        <div id="table_with_data">
+          {columnName ? <Table apidata={colData} /> : <Table apidata={apiData} />}
+        </div>
+      </div>
 
     </>
   );

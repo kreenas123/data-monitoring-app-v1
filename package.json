@@ -27,5 +27,34 @@
     "csv-parse": "^5.4.0",
     "fs": "^0.0.1-security",
     "path": "^0.12.7"
+  },
+  "build": {
+    "appId": "com.example.dataMonitoringApp",
+    "productName": "Data-Monitoring-App",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.ico"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "build/icon.png"
+    },
+    "mac": {
+      "target": "dmg", 
+      "icon": "build/icon.icns"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": true,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Data-Monitoring-App",
+      "installerIcon": "criton.ico"
+    }
   }
 }

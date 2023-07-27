@@ -41,8 +41,6 @@
     "react-scripts": "5.0.1",
     "react-time-picker": "^6.2.0",
     "redux": "^4.2.1",
-    "styled-component": "^2.8.0",
-    "styled-components": "^6.0.4",
     "styled-components-mui": "^0.3.2",
     "web-vitals": "^2.1.4",
     "xlsx": "^0.18.5"
@@ -51,9 +49,7 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject",
-    "electron": "electron .",
-    "dist": "electron-packager ."
+    "eject": "react-scripts eject"
   },
   "eslintConfig": {
     "extends": [

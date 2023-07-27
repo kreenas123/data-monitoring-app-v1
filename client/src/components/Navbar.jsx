@@ -15,7 +15,6 @@ import MenuIcon from '@mui/icons-material/Menu';
 
 import criton from '../images/criton.png';
 import Columns from './Column/Columns';
-import CustomizedColumn from './Column/CustomizedColumn';
 import Sidebar from './Sidebar';
 import config from "../config.json";
 

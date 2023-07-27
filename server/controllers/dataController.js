@@ -2,9 +2,7 @@ const fs = require("fs");
 const csv = require("csv-parser");
 const Chance = require("chance");
 const chance = new Chance();
-const filePath =
-  "C:\\Users\\P-1\\Desktop\\kreenas123\\server\\demo.csv";
-
+const filePath = "demo.csv";
 // const filePath = "1.csv";
 let clients = [];
 
