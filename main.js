@@ -2,7 +2,9 @@ const { app, BrowserWindow ,ipcMain } = require("electron");
 // const { spawn } = require("child_process");
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const { parse } = require('csv-parse');
+require('dotenv').config();
 
 let mainWindow;
 
@@ -14,12 +16,12 @@ function createWindow() {
       nodeIntegration: true,
       contextIsolation: false,
     },
-    icon: path.join(__dirname,'criton.png')
+    icon: path.join(__dirname,'criton_logo.png')
   });
 
   mainWindow.loadURL(`${app.getAppPath()}\\client\\build\\index.html`);
 
-  mainWindow.setMenu(null);
+  // mainWindow.setMenu(null);
 
   // Start the Node.js server as a child process
   // const serverProcess = spawn("node", [path.join(__dirname,"server", "server.js")]);
@@ -43,9 +45,9 @@ app.on("ready", () => {
   createWindow();
 
   // IPC event handler for 'request-data' message from the renderer process
-  ipcMain.on('request-data', async (event, startDate, endDate, startTime, endTime) => {
+  ipcMain.on('request-data', async (event, startDate, endDate, startTime, endTime, databaseName) => {
     try {
-      const filePath = path.join(__dirname, 'server','demo.csv');
+      const filePath = path.join(__dirname, 'server',`${databaseName}.csv`);
       const fileData = fs.readFileSync(filePath, 'utf8');
       parse(fileData, { columns: true }, (err, data) => {
         if (err) {
@@ -96,7 +98,7 @@ app.on("ready", () => {
             const timestamp = item.Timestamp
             return timestamp >= startDateTime && timestamp <= endDateTime;
           });
-  
+          
           event.reply('response-data', filteredData);
         }
       });
@@ -106,6 +108,40 @@ app.on("ready", () => {
       event.reply('response-data', 'Error fetching data');
     }
   });
+
+  ipcMain.on('request-config', async (event) => {
+    try {
+      // console.log("request-config")
+      const encryptionKey = 'mnbvcxzasdqwertyuiop0987654321kk';
+      // const encryptionKey = process.env.KEY;
+      
+      const filePath = path.join(__dirname, 'encrypted-config.json');
+      const encryptedFileData = fs.readFileSync(filePath, 'utf-8');
+      const { iv, encryptedData } = JSON.parse(encryptedFileData);
+
+      // Convert the initialization vector (iv) to a Buffer
+      const ivBuffer = Buffer.from(iv, 'hex');
+
+      // Create a decipher instance with the same key and iv
+      const decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from(encryptionKey), ivBuffer);
+
+      // Decrypt the data
+      let decryptedData = decipher.update(encryptedData, 'hex', 'utf-8');
+      decryptedData += decipher.final('utf-8');
+
+      // Parse the decrypted JSON data
+      const decryptedConfig = JSON.parse(decryptedData);
+
+      // console.log('Decrypted Configuration:', decryptedConfig);
+
+      event.reply('response-config', JSON.parse(decryptedConfig));
+    } catch (error) {
+      console.error('Error while fetching config data:', error);
+      // Send an error message back to the renderer process if needed
+      event.reply('response-config', 'Error fetching config data');
+    }
+  });
+
 });
 
 // Quit the app when all windows are closed (except on macOS)

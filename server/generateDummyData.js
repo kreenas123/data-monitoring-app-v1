@@ -20,8 +20,8 @@ function generateDataset() {
 
     // Generate random values for each column
     const dataPoint = { timestamp };
-    for (let i = 0; i < 10; i++) {
-      const columnName = String.fromCharCode(65 + i); // A, B, C, ...
+    for (let i = 0; i < 4; i++) {
+      const columnName = getColumnNames(i); // Get column name based on index
       const minRange = i * 100;
       const maxRange = (i + 1) * 100;
       const value = getRandomNumber(minRange, maxRange);
@@ -36,17 +36,23 @@ function generateDataset() {
   return dataset;
 }
 
+// Function to get column names based on index
+function getColumnNames(index) {
+  const columnNames = ['Density', 'Temperature', 'Pressure', 'Humidity'];
+  return columnNames[index];
+}
+
 // Generate the dataset
 const dataset = generateDataset();
 
 // Convert the dataset to CSV format
-let csvContent = 'Timestamp,A,B,C,D,E,F,G,H,I,J\n';
+let csvContent = 'Timestamp,Density,Temperature,Pressure,Humidity\n';
 dataset.forEach((dataPoint) => {
-  csvContent += `${dataPoint.timestamp},${dataPoint.A},${dataPoint.B},${dataPoint.C},${dataPoint.D},${dataPoint.E},${dataPoint.F},${dataPoint.G},${dataPoint.H},${dataPoint.I},${dataPoint.J}\n`;
+  csvContent += `${dataPoint.timestamp},${dataPoint.Density},${dataPoint.Temperature},${dataPoint.Pressure},${dataPoint.Humidity}\n`;
 });
 
 // Save the dataset to a CSV file
-fs.writeFile('data.csv', csvContent, (err) => {
+fs.writeFile('SPF_F1_SHIFT.csv', csvContent, (err) => {
   if (err) throw err;
-  console.log('Dataset saved to dataset.csv');
+  console.log('Dataset saved to SPF_F1_SHIFT.csv');
 });

@@ -10,6 +10,7 @@ app.use(cors());
 app.use(express.json()); 
 
 app.get("/api/data", dataController.getData);
+app.get("/api/decryptConfig", dataController.decryptConfig);
 
 app.get("/", (req, res) => {
   res.json("Yay!");

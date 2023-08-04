@@ -1,40 +1,16 @@
 const fs = require("fs");
+const path = require("path");
 const csv = require("csv-parser");
-const Chance = require("chance");
-const chance = new Chance();
-const filePath = "demo.csv";
-// const filePath = "1.csv";
-let clients = [];
-
-// function sendRealtimeData(data) {
-//   clients.forEach((client) => {
-//     client.send(JSON.stringify(data));
-//   });
-// }
-
-// const generateRandomData = () => {
-//   const timestamp = Date.now();
-//   const date = new Date(timestamp).toISOString().split("T")[0];
-//   const month = new Date(timestamp).toLocaleString("default", {
-//     month: "long",
-//   });
-//   const time = new Date(timestamp).toLocaleTimeString();
-//   const temperature = chance.integer({ min: 20, max: 400 });
-//   const humidity = chance.integer({ min: 30, max: 700 });
-//   const pressure = chance.integer({ min: 800, max: 1200 });
-
-//   return {
-//     timestamp,
-//     date,
-//     month,
-//     time,
-//     pressure,
-//     temperature,
-//     humidity,
-//   };
-// };
+const crypto = require('crypto');
+require('dotenv').config({ path: '../.env'});
+// const Chance = require("chance");
+// const chance = new Chance();
+// let clients = [];
 
 const getData = (req, res) => {
+  const {databaseName } = req.query;
+  // console.log(databaseName)
+  const filePath = `${databaseName}.csv`;
   const results = [];
 
   fs.createReadStream(filePath)
@@ -44,7 +20,7 @@ const getData = (req, res) => {
     })
     .on("end", () => {
       const { startDate, endDate, startTime, endTime } = req.query;
-      // console.log(startDate, endDate, startTime, endTime, "applied filters");
+      // console.log(startDate, endDate, startTime, endTime,"applied filters");
 
       const currentDate = new Date();
       const defaultStartDate =
@@ -99,6 +75,64 @@ const getData = (req, res) => {
     });
 };
 
+const decryptConfig = (req,res)=>{
+  // const encryptionKey = 'mnbvcxzasdqwertyuiop0987654321kk';
+  const encryptionKey = process.env.KEY;
+
+// Read the encrypted file data
+// C:\Users\P-1\Desktop\data-monitoring-app\encrypted-config.json
+const filePath = path.join(__dirname, '..',  '..', 'encrypted-config.json');
+const encryptedFileData = fs.readFileSync(filePath, 'utf-8');
+const { iv, encryptedData } = JSON.parse(encryptedFileData);
+
+// Convert the initialization vector (iv) to a Buffer
+const ivBuffer = Buffer.from(iv, 'hex');
+
+// Create a decipher instance with the same key and iv
+const decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from(encryptionKey), ivBuffer);
+
+// Decrypt the data
+let decryptedData = decipher.update(encryptedData, 'hex', 'utf-8');
+decryptedData += decipher.final('utf-8');
+
+// Parse the decrypted JSON data
+const decryptedConfig = JSON.parse(decryptedData);
+
+// console.log('Decrypted Configuration:', decryptedConfig);
+// res.json(decryptedConfig);
+res.json(JSON.parse(decryptedConfig));
+
+}
+
+// function sendRealtimeData(data) {
+//   clients.forEach((client) => {
+//     client.send(JSON.stringify(data));
+//   });
+// }
+
+// const generateRandomData = () => {
+//   const timestamp = Date.now();
+//   const date = new Date(timestamp).toISOString().split("T")[0];
+//   const month = new Date(timestamp).toLocaleString("default", {
+//     month: "long",
+//   });
+//   const time = new Date(timestamp).toLocaleTimeString();
+//   const temperature = chance.integer({ min: 20, max: 400 });
+//   const humidity = chance.integer({ min: 30, max: 700 });
+//   const pressure = chance.integer({ min: 800, max: 1200 });
+
+//   return {
+//     timestamp,
+//     date,
+//     month,
+//     time,
+//     pressure,
+//     temperature,
+//     humidity,
+//   };
+// };
+
+// Realtime data generation code 
 // function generateAndAppendData() {
 //   const data = generateRandomData();
 
@@ -129,6 +163,7 @@ const getData = (req, res) => {
 
 module.exports = {
   // sendRealtimeData,
+  decryptConfig,
   getData,
   // generateAndAppendData
 };

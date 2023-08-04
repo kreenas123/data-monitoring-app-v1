@@ -13,6 +13,7 @@ import RotateLeftIcon from "@mui/icons-material/RotateLeft";
 import ZoomInIcon from "@mui/icons-material/ZoomIn";
 import ZoomOutIcon from "@mui/icons-material/ZoomOut";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
+import CheckIcon from '@mui/icons-material/Check';
 
 import Table from "../Table/Table";
 import LineChart from "../Chart/LineChart";
@@ -25,16 +26,7 @@ import axios from "axios";
 import html2canvas from "html2canvas";
 import { saveAs } from "file-saver";
 import ExcelJS from "exceljs";
-import { useDispatch, useSelector } from 'react-redux';
-
-let ipcRenderer;
-if (window && window.require) {
-  ipcRenderer = window.require('electron').ipcRenderer;
-} else {
-  // Handle the case when running in a regular web browser environment
-  // (e.g., show an error message or use a fallback)
-  ipcRenderer = null;
-}
+import { useSelector } from 'react-redux';
 
 const Columns = (props) => {
   const propKeys = Object.keys(props);
@@ -45,13 +37,15 @@ const Columns = (props) => {
     });
   }, [propKeys, props]);
 
-  const { columnName } = props;
+  const { columnName, databaseName } = props;
+  const isElectron = useSelector(state => state.isElectron);
+  const ipcRenderer = useSelector(state => state.ipcRenderer);
 
   const [imageDataURL, setImageDataURL] = useState("");
   const [checked, setChecked] = React.useState(true);
   const [open, setOpen] = React.useState(false);
   const [apiData, setApiData] = useState([]);
-  const [testData, setTestData] = useState(null);
+  const [resetFilter, setResetFilter] = useState(false);
 
   const currentDate = new Date();
   const defaultStartDate = currentDate.toISOString().split("T")[0];
@@ -65,21 +59,6 @@ const Columns = (props) => {
   const [endDate, setEndDate] = useState(new Date().toISOString().slice(0, 10));
   const [startTime, setStartTime] = useState("00:00:00");
   const [endTime, setEndTime] = useState("23:00:00");
-
-  const isElectron = useSelector(state => state.isElectron);
-  const dispatch = useDispatch();
-
-  useEffect(() => {
-    // Check if we are running in an Electron environment
-    const isRunningInElectron = window && window.process && window.process.type;
-    console.log(isRunningInElectron)
-    dispatch({ type: 'SET_IS_ELECTRON', payload: isRunningInElectron });
-  }, [dispatch]);
-
-  useEffect(() => {
-    // Now the `isElectron` value is updated from the Redux store
-    console.log('isElectron:', typeof (isElectron), "plej", isElectron);
-  }, [isElectron]);
 
   // Convert string to ArrayBuffer
   const s2ab = (s) => {
@@ -121,6 +100,7 @@ const Columns = (props) => {
   // useEffect(() => {
   //   console.log(imageDataURL);
   // }, [imageDataURL]);
+
 
   const downloadTable = async (format) => {
     const table = document.getElementById("table_with_data");
@@ -329,9 +309,30 @@ const Columns = (props) => {
     }
   };
 
+  const resetFilters = () => {
+    setStartDateTime(`${defaultStartDate}T${defaultStartTime}`);
+    setEndDateTime(`${defaultEndDate}T${defaultEndTime}`);
+    setStartDate(defaultStartDate);
+    setEndDate(defaultEndDate);
+    setStartTime(defaultStartTime);
+    setEndTime(defaultEndTime);
+    setResetFilter(true);
+  };
+
+  useEffect(() => {
+    fetchData();
+    if (isElectron === "renderer") {
+      ipcRenderer.once('response-data', handleResponseData);
+      return () => {
+        ipcRenderer.removeListener('response-data', handleResponseData);
+      };
+    }
+  }, [resetFilter]);
+
   const chartRef = useRef(null);
   const resetChartZoom = () => {
     chartRef.current.getChartInstance().resetZoom();
+    resetFilters();
   };
   const zoomIn = () => {
     if (chartRef.current) {
@@ -347,12 +348,12 @@ const Columns = (props) => {
   const fetchData = async () => {
     try {
       if (isElectron === "renderer") {
-        ipcRenderer.send('request-data', startDate, endDate, startTime, endTime);
+        ipcRenderer.send('request-data', startDate, endDate, startTime, endTime,databaseName);
       } else {
-        const apiUrl = `http://localhost:8080/api/data?startDate=${startDate}&endDate=${endDate}&startTime=${startTime}&endTime=${endTime}`;
+        const apiUrl = `http://localhost:8080/api/data?startDate=${startDate}&endDate=${endDate}&startTime=${startTime}&endTime=${endTime}&databaseName=${databaseName}`;
         const response = await axios.get(apiUrl);
         setApiData(response.data);
-        console.log(response.data, "response.data 1st time valaaaaa from columns component");
+        // console.log(response.data, "response.data 1st time valaaaaa from columns component");
       }
     } catch (error) {
       console.error(error);
@@ -367,9 +368,10 @@ const Columns = (props) => {
         ipcRenderer.removeListener('response-data', handleResponseData);
       };
     }
-  }, [isElectron]);
+  }, [isElectron, databaseName]);
 
   const handleResponseData = (event, data) => {
+    console.log("reset ke baadddddd",data)
     setApiData(data);
   };
 
@@ -450,9 +452,13 @@ const Columns = (props) => {
                 value={endDateTime}
                 onChange={handleInputChange}
               />
-              <Button size="small" type="submit" variant="contained" onClick={handleSubmit}>
-                Apply Filter
-              </Button>
+              <CheckIcon onClick={handleSubmit} className="graph-header-icons" />
+              {/* <Tooltip title="Reset Filters" arrow>
+              <RotateLeftIcon
+              className="graph-header-icons"
+                onClick={resetChartZoom}
+              ></RotateLeftIcon>
+            </Tooltip> */}
             </form>
           </div>
           <div>

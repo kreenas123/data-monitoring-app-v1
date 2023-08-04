@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import styled from "styled-components";
 import { IconContext } from "react-icons/lib";
 
-import { SidebarData } from "./SidebarData";
+import SidebarData from "./SidebarData";
 import SubMenu from "./SubMenu";
 
 const Nav = styled.div`
@@ -43,6 +43,7 @@ width: 100%;
 
 const Sidebar = () => {
 const [sidebar, setSidebar] = useState(true);
+const sidebarItems = SidebarData();
 
 // const showSidebar = () => setSidebar(!sidebar);
 
@@ -60,7 +61,7 @@ return (
 			{/* <NavIcon to="#">
 			<AiIcons.AiOutlineClose onClick={showSidebar} />
 			</NavIcon> */}
-			{SidebarData.map((item, index) => {
+			{sidebarItems.map((item, index) => {
 			return <SubMenu item={item} key={index} />;
 			})}
 		</SidebarWrap>

@@ -16,7 +16,7 @@ import MenuIcon from '@mui/icons-material/Menu';
 import criton from '../images/criton.png';
 import Columns from './Column/Columns';
 import Sidebar from './Sidebar';
-import config from "../config.json";
+import { useSelector } from 'react-redux';
 
 const drawerWidth = 240;
 
@@ -28,7 +28,7 @@ function ResponsiveDrawer(props) {
     const handleDrawerToggle = () => {
         setMobileOpen(!mobileOpen);
     };
-
+    const config = useSelector(state => state.decryptConfig);
     const drawer = (
         <div>
             <Toolbar sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
@@ -44,7 +44,7 @@ function ResponsiveDrawer(props) {
 
     const container = window !== undefined ? () => window().document.body : undefined;
 
-    const routes = Object.entries(config.databases).flatMap(([key, database],index) => {
+    const routes = Object.entries(config?.databases).flatMap(([key, database],index) => {
         const { db_name, db_columns } = database;
         
         const databaseRoutePath = index === 0 ? "/" : `/${db_name}`;

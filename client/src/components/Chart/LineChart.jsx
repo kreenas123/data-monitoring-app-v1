@@ -133,19 +133,19 @@ import React, {
       const dynamicDatasets = Object.keys(datasets[0]).map((key) => ({
         label: key,
         data: datasets.map((data) => data[key]),
-        borderWidth: 0.7,
+        borderWidth: 1.5,
         pointRadius: 0,
       }));
   
-      const bgColor = {
-        id: "bgColor",
-        beforeDraw: (chart, steps, options) => {
-          const { ctx, width, height } = chart;
-          ctx.fillStyle = options.backgroundColor || "white";
-          ctx.fillRect(0, 0, width, height);
-          ctx.restore();
-        },
-      };
+      // const bgColor = {
+      //   id: "bgColor",
+      //   beforeDraw: (chart, steps, options) => {
+      //     const { ctx, width, height } = chart;
+      //     ctx.fillStyle = options.backgroundColor || "white";
+      //     ctx.fillRect(0, 0, width, height);
+      //     ctx.restore();
+      //   },
+      // };
   
       const chart = new Chart(ctx, {
         type: "line",
@@ -183,7 +183,7 @@ import React, {
               backgroundColor: "white",
             },
           },
-          plugins: [bgColor],
+          // plugins: [bgColor],
         },
       });
   

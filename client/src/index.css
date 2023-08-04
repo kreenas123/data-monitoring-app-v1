@@ -84,6 +84,7 @@ h1 {
   width: 28px !important;
   margin-left: 8px !important;
   color: var(--secondary-color);
+  cursor: pointer;
 }
 
 .graph-header {
@@ -218,6 +219,11 @@ h1 {
   width: 190px !important;
 }
 
+.css-1o6z5ng{
+  height: 10px !important;
+  width: 190px !important;
+}
+
 
 /* new changes */
 .css-1kvaj0b {
@@ -257,13 +263,13 @@ h1 {
 .sc-bdVaJa {
   width: 200px !important;
   height: 40px !important;
-  font-size: 15px !important;
+  font-size: 12px !important;
 }
 
 .eHraXN {
   width: 200px !important;
   height: 40px !important;
-  font-size: 15px !important;
+  font-size: 12px !important;
 }
 
 .css-1o5pq7n {
@@ -282,7 +288,7 @@ h1 {
 
 .css-1lpukdo{
   background-color: var(--secondary-color) !important;
-  margin: 4px !important;
+  text-transform: capitalize !important;
 }
 
 .css-1o6z5ng{

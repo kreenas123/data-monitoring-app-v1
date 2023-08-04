@@ -1,5 +1,3 @@
 /node_modules
 /dist
-/icons
-criton.ico
-criton.png
+.env

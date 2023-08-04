@@ -8,23 +8,17 @@
     "start": "electron .",
     "build": "electron-builder"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/KreenaShah/criton.git"
-  },
   "keywords": [],
-  "author": "",
+  "author": "Criton Technology And Automation",
   "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/KreenaShah/criton/issues"
-  },
-  "homepage": "https://github.com/KreenaShah/criton#readme",
   "devDependencies": {
     "electron": "^25.3.0",
     "electron-builder": "^24.6.3"
   },
   "dependencies": {
+    "crypto": "^1.0.1",
     "csv-parse": "^5.4.0",
+    "dotenv": "^16.3.1",
     "fs": "^0.0.1-security",
     "path": "^0.12.7"
   },
@@ -43,7 +37,7 @@
       "icon": "build/icon.png"
     },
     "mac": {
-      "target": "dmg", 
+      "target": "dmg",
       "icon": "build/icon.icns"
     },
     "nsis": {
