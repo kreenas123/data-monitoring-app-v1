@@ -1,0 +1,31 @@
+{
+    "slaves": {
+        "s1": {
+            "slave_id": "1",
+            "slave_name": "Slave1",
+            "mode":"RTU",
+            "object_type": {
+                "Coil Status": {
+                    "status":"no",
+                    "startAddress":"0",
+                    "count":"10"
+                },
+                "Input Status": {
+                    "status":"no",
+                    "startAddress":"0",
+                    "count":"10"
+                },
+                "Holding Register": {
+                    "status":"yes",
+                    "startAddress":"0",
+                    "count":"10"
+                },
+                "Input Register":  {
+                    "status":"no",
+                    "startAddress":"0",
+                    "count":"10"
+                }
+            }
+        }
+    }
+}

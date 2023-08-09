@@ -5,7 +5,7 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import Tooltip from "@mui/material/Tooltip";
 import Box from "@mui/material/Box";
-import { Button, TextField, Typography } from "@mui/material";
+import { Button, TextField, Typography, Modal, FormControl, InputLabel, Select } from "@mui/material";
 import Checkbox from "@mui/material/Checkbox";
 import FormControlLabel from "@mui/material/FormControlLabel";
 
@@ -14,6 +14,10 @@ import ZoomInIcon from "@mui/icons-material/ZoomIn";
 import ZoomOutIcon from "@mui/icons-material/ZoomOut";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import CheckIcon from '@mui/icons-material/Check';
+import SettingsInputAntennaIcon from "@mui/icons-material/SettingsInputAntenna";
+import Menu from "@mui/material/Menu";
+import MenuItem from "@mui/material/MenuItem";
+import Fade from "@mui/material/Fade";
 
 import Table from "../Table/Table";
 import LineChart from "../Chart/LineChart";
@@ -46,13 +50,16 @@ const Columns = (props) => {
   const [open, setOpen] = React.useState(false);
   const [apiData, setApiData] = useState([]);
   const [resetFilter, setResetFilter] = useState(false);
+  const [anchorEl, setAnchorEl] = React.useState(null);
+  const openMenu = Boolean(anchorEl);
+  const [isConnected, setIsConnected] = useState(false);
 
   const currentDate = new Date();
   const defaultStartDate = currentDate.toISOString().split("T")[0];
   const defaultStartTime = "00:00:00";
   const defaultEndDate = currentDate.toISOString().split("T")[0];
   const defaultEndTime = "23:00:00";
-
+  
   const [startDateTime, setStartDateTime] = useState(`${defaultStartDate}T${defaultStartTime}`);
   const [endDateTime, setEndDateTime] = useState(`${defaultEndDate}T${defaultEndTime}`);
   const [startDate, setStartDate] = useState(new Date().toISOString().slice(0, 10));
@@ -416,6 +423,49 @@ const Columns = (props) => {
     setChecked(event.target.checked);
   };
 
+  const handleMenuClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleConnect = () => {
+    if (isElectron === "renderer") {
+      if (isConnected===false) {
+        ipcRenderer.send("connectModbus");
+      }
+    }
+  }
+
+  const handleDisconnect = () => {
+    if (isElectron === "renderer") {
+      if (!isConnected) {
+        ipcRenderer.send("disconnectModbus");
+      }
+    }
+  }
+
+  if (isElectron === "renderer") {
+    ipcRenderer.on("connectModbusResponse", (event, isConnected) => {
+      setIsConnected(isConnected);
+    });
+  }
+
+  const [openModal, setOpenModal] = useState(false);
+  const handleModalOpen = () => setOpenModal(true);
+  const handleModalClose = () => setOpenModal(false);
+  const style = {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    width: 400,
+    bgcolor: 'background.paper',
+    p: 2,
+  };
+
+
   return (
     <>
       <div>
@@ -462,6 +512,90 @@ const Columns = (props) => {
             </form>
           </div>
           <div>
+          <Tooltip
+              title="Connection"
+              id="fade-button"
+              aria-controls={open ? "fade-menu" : undefined}
+              aria-haspopup="true"
+              aria-expanded={open ? "true" : undefined}
+              onClick={handleMenuClick}
+            >
+              <SettingsInputAntennaIcon className="graph-header-icons" />
+            </Tooltip>
+            <Menu
+              id="fade-menu"
+              MenuListProps={{
+                "aria-labelledby": "fade-button",
+              }}
+              anchorEl={anchorEl}
+              open={openMenu}
+              onClose={handleMenuClose}
+              TransitionComponent={Fade}
+            >
+              <MenuItem onClick={handleModalOpen}>Open Modal</MenuItem>
+              <Modal
+                open={openModal}
+                onClose={handleModalClose}
+                aria-labelledby="modal-modal-title"
+                aria-describedby="modal-modal-description"
+              >
+                <Box sx={style}>
+                  <Typography id="modal-modal-title" variant="h6" component="h2">
+                    Settings Parameter
+                  </Typography>
+                  <form>
+                    <div className="flex">
+                      <TextField id="outlined-basic" size="small" label="Outlined" variant="outlined" />
+                      <FormControl fullWidth>
+                        <InputLabel id="demo-simple-select-label">Parity</InputLabel>
+                        <Select
+                          size="small"
+                          labelId="demo-simple-select-label"
+                          id="demo-simple-select"
+                          label="Parity"
+                        >
+                          <MenuItem value={"None"}>None</MenuItem>
+                          <MenuItem value={"Even"}>Even</MenuItem>
+                          <MenuItem value={"Odd"}>Odd</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </div>
+                    <div className="flex">
+                      <TextField
+                        size="small"
+                        type="number"
+                        name="dataBits"
+                        variant="outlined"
+                        placeholder="DataBits"
+                      />
+                      <TextField
+                        size="small"
+                        type="number"
+                        name="stopBits"
+                        variant="outlined"
+                        placeholder="StopBits"
+                      />
+                    </div>
+                    <Button
+                      size="small"
+                      type="submit"
+                      variant="contained"
+                      onClick={handleConnect}
+                    >
+                      Connect
+                    </Button>
+                  </form>
+                </Box>
+              </Modal>
+              <MenuItem><Button
+                      size="small"
+                      type="submit"
+                      variant="contained"
+                      onClick={handleDisconnect}
+                    >
+                      Disconnect
+                    </Button></MenuItem>
+            </Menu>
             <Tooltip title="Reset" arrow>
               <RotateLeftIcon
                 className="graph-header-icons"

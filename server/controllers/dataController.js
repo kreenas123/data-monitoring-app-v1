@@ -76,8 +76,8 @@ const getData = (req, res) => {
 };
 
 const decryptConfig = (req,res)=>{
-  // const encryptionKey = 'mnbvcxzasdqwertyuiop0987654321kk';
-  const encryptionKey = process.env.KEY;
+  const encryptionKey = 'mnbvcxzasdqwertyuiop0987654321kk';
+  // const encryptionKey = process.env.KEY;
 
 // Read the encrypted file data
 // C:\Users\P-1\Desktop\data-monitoring-app\encrypted-config.json

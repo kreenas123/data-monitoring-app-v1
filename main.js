@@ -5,8 +5,14 @@ const path = require('path');
 const crypto = require('crypto');
 const { parse } = require('csv-parse');
 require('dotenv').config();
+const {
+  initializeModbusConnection,
+  startDataFetching,
+  stopDataFetching,
+} = require("./modbusHandler");
 
 let mainWindow;
+let dataInterval = null;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -16,7 +22,7 @@ function createWindow() {
       nodeIntegration: true,
       contextIsolation: false,
     },
-    icon: path.join(__dirname,'criton_logo.png')
+    icon: path.join(__dirname,'criton_logo.jpg')
   });
 
   mainWindow.loadURL(`${app.getAppPath()}\\client\\build\\index.html`);
@@ -140,6 +146,20 @@ app.on("ready", () => {
       // Send an error message back to the renderer process if needed
       event.reply('response-config', 'Error fetching config data');
     }
+  });
+
+  ipcMain.on("connectModbus", (event) => {
+    initializeModbusConnection();
+    dataInterval = startDataFetching(5); // Store the interval for data fetching
+    // Send response to the renderer process
+    event.sender.send("connectModbusResponse", true);
+  });
+
+  // IPC event listener for "disconnectModbus" message from renderer process
+  ipcMain.on("disconnectModbus", (event) => {
+    stopDataFetching(dataInterval); // Stop data fetching
+    // Send response to the renderer process
+    event.sender.send("connectModbusResponse", false);
   });
 
 });
